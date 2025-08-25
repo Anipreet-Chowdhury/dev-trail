@@ -1,8 +1,17 @@
 import { projects } from "@/data/projects";
 
-export default function Showcase({ params }: { params: { slug: string } }) {
-  const proj = projects.find(p => p.slug === params.slug);
-  if (!proj) return <div>Not found.</div>;
+export default async function Showcase({ 
+    params, 
+}: { 
+    params: Promise<{ slug: string }>; 
+}) {
+    const {slug} = await params;
+    const proj = projects.find((p) => p.slug === slug);
+
+    if (!proj) return <div>Not found.</div>;
+
+    
+    if (!proj) return <div>Not found.</div>;
 
   return (
     <article className="space-y-8">
