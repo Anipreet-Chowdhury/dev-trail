@@ -9,7 +9,7 @@ export default function Home() {
         <Card title="About me" body="India → Canada → Data + Fullstack." />
         <Card title="My Journey" body="Milestones, pivots, lessons." />
         <Card title="Skills" body="Python, SQL, FastAPI, Next.js, Firebase, BigQuery, ML/NLP." />
-        <Card title="Goals (2025)" body="Ship 4 projects by Dec 15. Sub‑25 5K. PS5 reward." />
+        <Card title="Goals (2025)" body="Ship 4 projects by Dec 15. Sub‑25 5K." />
       </div>
     </section>
   );
