@@ -4,7 +4,7 @@ export const projects: Project[] = [
     {
         slug: "devtrail",
         name: "DevTrail",
-        repoUrl: "https://github.com/<you>/dev-trail",
+        repoUrl: "https://github.com/Anipreet-Chowdhury/dev-trail",
         status: "building",
         nextUpdateISO: new Date(Date.now()+3*24*3600e3).toISOString(),
         tags: ["nextjs","tailwind","firebase"],
