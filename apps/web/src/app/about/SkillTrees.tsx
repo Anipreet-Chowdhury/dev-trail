@@ -28,35 +28,50 @@ export function SkillBadge({ leaf }: { leaf: SkillLeaf }) {
 }
 
 export function SkillTreeCard({ tree }: { tree: SkillTree }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.45, ease: "easeOut" }}
-            className="rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6"
-        >
-            <div className="flex items-baseline justify-between">
-                <h3 className="text-lg font-semibold">{tree.title}</h3>
-                <div className="flex items-center gap-3 text-xs text-zinc-400">
-                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500"/>85–100</div>
-                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-400"/>70–84</div>
-                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-amber-400"/>55–69</div>
-                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-orange-400"/>35–54</div>
-                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-rose-500"/>0–34</div>
-                </div>
-            </div>
-            {tree.description && (
-                <p className="mt-1 text-sm text-zinc-400">{tree.description}</p>
-            )}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {tree.leaves.map((leaf) => (
-                    <SkillBadge key={leaf.name} leaf={leaf} />
-                ))}
-            </div>
-        </motion.div>
-    );
+  const sortedLeaves = React.useMemo(() => {
+    return [...tree.leaves].sort((a, b) => {
+      // non-future first
+      if (!!a.future !== !!b.future) return a.future ? 1 : -1;
+      // then by mastery desc
+      const byMastery = b.mastery - a.mastery;
+      if (byMastery !== 0) return byMastery;
+      // tie-breaker: name asc
+      return a.name.localeCompare(b.name);
+    });
+  }, [tree.leaves]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
+      className="rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6"
+    >
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-lg font-semibold">{tree.title}</h3>
+        <div className="flex items-center gap-3 text-xs text-zinc-400">
+          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />85–100</div>
+          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />70–84</div>
+          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-amber-400" />55–69</div>
+          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-orange-400" />35–54</div>
+          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-rose-500" />0–34</div>
+        </div>
+      </div>
+
+      {tree.description && (
+        <p className="mt-1 text-sm text-zinc-400">{tree.description}</p>
+      )}
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {sortedLeaves.map((leaf) => (
+          <SkillBadge key={leaf.name} leaf={leaf} />
+        ))}
+      </div>
+    </motion.div>
+  );
 }
+
 
 export default function SkillTrees({ trees }: { trees: SkillTree[] }) {
     return (
