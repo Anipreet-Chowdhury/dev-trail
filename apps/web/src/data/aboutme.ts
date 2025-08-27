@@ -1,11 +1,11 @@
 import { Hop, SkillTree } from "@/types";
 
 export const Hops: Hop[] = [
-    { city: "Hyderabad",label: "Elementary School",name: "Chirec International",country: "India",x: 650,y: 320},
-    { city: "Mumbai",label: "Middle School",name: "Bombay Scottish",country: "India",x: 630,y: 320},
-    { city: "Gurgaon",label: "High School",name: "Heritage Xperiential Learning School",country: "India",x: 640,y: 300},
-    { city: "Toronto",label: "University",name: "University of Toronto",country: "Canada",x: 190,y: 200},
-    { city: "Mississauga",label: "Working",name: "Zebra Technologies",country: "Canada",x: 190,y: 190},
+    { city: "Hyderabad",label: "Elementary School",name: "Chirec International",country: "India",x: 700,y: 320},
+    { city: "Mumbai",label: "Middle School",name: "Bombay Scottish",country: "India",x: 550,y: 320},
+    { city: "Gurgaon",label: "High School",name: "Heritage Xperiential Learning School",country: "India",x: 640,y: 250},
+    { city: "Toronto",label: "University",name: "University of Toronto",country: "Canada",x: 200,y: 200},
+    { city: "Mississauga",label: "Working",name: "Zebra Technologies",country: "Canada",x: 170,y: 180},
 ];
 
 
