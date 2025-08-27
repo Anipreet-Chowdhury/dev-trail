@@ -50,13 +50,6 @@ export function SkillTreeCard({ tree }: { tree: SkillTree }) {
     >
       <div className="flex items-baseline justify-between">
         <h3 className="text-lg font-semibold">{tree.title}</h3>
-        <div className="flex items-center gap-3 text-xs text-zinc-400">
-          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />85–100</div>
-          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />70–84</div>
-          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-amber-400" />55–69</div>
-          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-orange-400" />35–54</div>
-          <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-rose-500" />0–34</div>
-        </div>
       </div>
 
       {tree.description && (
@@ -79,6 +72,13 @@ export default function SkillTrees({ trees }: { trees: SkillTree[] }) {
             <div className="flex items-baseline justify-between gap-4">
                 <h2 className="text-2xl font-semibold">Dynamic Skill Trees</h2>
                 <div className="text-sm text-zinc-400">Current mastery + future leaves</div>
+                 <div className="flex items-center gap-3 text-xs text-zinc-400">
+                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />85–100</div>
+                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />70–84</div>
+                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-amber-400" />55–69</div>
+                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-orange-400" />35–54</div>
+                    <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-rose-500" />0–34</div>
+                </div>
             </div>
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
                 {trees.map((tree) => (
