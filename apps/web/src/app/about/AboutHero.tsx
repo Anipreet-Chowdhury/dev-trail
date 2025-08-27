@@ -7,7 +7,7 @@ export default function AboutHero() {
                     <p className="mt-3 text-zinc-300 leading-relaxed max-w-2xl">
                         I’m a Toronto‑based engineer blending  
                         <span className="font-medium text-zinc-100">data engineering</span>,
-                        <span className="font-medium text-zinc-100"> machine learning and </span>, 
+                        <span className="font-medium text-zinc-100"> machine learning and </span> 
                         <span className="font-medium text-zinc-100">full‑stack development</span>.
                         I build pragmatic systems: clean UIs, reliable APIs, and pipelines that move the needle.
                         This page tracks my journey across cities and skills—and what I’m mastering next.
