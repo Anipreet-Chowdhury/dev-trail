@@ -155,7 +155,7 @@ export default function ProjectsView() {
           <select
             className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm"
             value={sort}
-            onChange={(e) => setSort(e.target.value as any)}
+            onChange={(e) => setSort(e.target.value as "updated" | "stars")}
           >
             <option value="updated">Recently updated</option>
             <option value="stars">Most stars</option>

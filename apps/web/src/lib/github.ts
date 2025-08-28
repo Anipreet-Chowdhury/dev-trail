@@ -25,19 +25,18 @@ export type Repo = {
   archived: boolean;
   disabled: boolean;
   pushed_at: string; // ISO
-  private?: boolean; // <-- NEW: show private badge if you want
-  owner?: { login: string }; // <-- used for filtering to your own repos
+  private?: boolean;
+  owner?: { login: string };
 };
 
 export async function fetchUserRepos(username: string) {
   const authed = Boolean(process.env.GITHUB_TOKEN);
 
-  // With a token, use the authenticated endpoint which includes private repos.
-  // Without a token, fall back to the public-only endpoint.
-    const url = authed
-    // Authenticated: include everything you have access to (private+public), no `type` param.
+  // ✅ Authenticated call: include private/public repos you have access to.
+  // DO NOT include `type` with `affiliation` to avoid 422.
+  const url = authed
     ? `${GITHUB_API}/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member`
-    // Public-only fallback:
+    // Public-only fallback for unauthenticated requests:
     : `${GITHUB_API}/users/${username}/repos?per_page=100&sort=updated&type=owner`;
 
   const res = await fetch(url, {
@@ -53,27 +52,32 @@ export async function fetchUserRepos(username: string) {
 
   let data = (await res.json()) as Repo[];
 
-//   If authed, optionally keep only repos owned by this user.
-//   Remove this block if you want to include org/collab repos your token can see.
+  // Optional: keep only repos owned by this user (hide org/collab).
   if (authed && username) {
     const me = username.toLowerCase();
     data = data.filter((r) => (r.owner?.login ?? "").toLowerCase() === me);
   }
 
-  // Fetch topics (separate endpoint)
+  // Fetch topics per repo (separate endpoint).
   const withTopics = await Promise.all(
     data.map(async (r) => {
       try {
         const tRes = await fetch(`${GITHUB_API}/repos/${r.full_name}/topics`, {
-          headers: { ...ghHeaders(), Accept: "application/vnd.github.mercy-preview+json" },
+          headers: {
+            ...ghHeaders(),
+            // modern media type works; mercy preview kept for compatibility if needed
+            Accept: "application/vnd.github+json",
+          },
           cache: "no-store",
           next: { revalidate: 0 },
         });
         if (tRes.ok) {
-          const t = await tRes.json();
-          return { ...r, topics: t.names as string[] };
+          const t: { names?: string[] } = await tRes.json();
+          return { ...r, topics: t.names ?? [] };
         }
-      } catch {}
+      } catch {
+        // ignore topic failures and return repo as-is
+      }
       return r;
     })
   );
@@ -81,8 +85,34 @@ export async function fetchUserRepos(username: string) {
   return withTopics;
 }
 
+/* ---------- Pinned (GraphQL) ---------- */
+
+type GqlTopicNode = { topic: { name: string } };
+type GqlPinnedRepo = {
+  id: string;
+  name: string;
+  nameWithOwner: string;
+  url: string;
+  description: string | null;
+  stargazerCount: number;
+  forkCount: number;
+  primaryLanguage?: { name: string } | null;
+  updatedAt: string;
+  isArchived: boolean;
+  isDisabled: boolean;
+  repositoryTopics?: { nodes: GqlTopicNode[] } | null;
+};
+type GqlPinnedResp = {
+  data?: {
+    user?: {
+      pinnedItems?: { nodes?: GqlPinnedRepo[] };
+    };
+  };
+};
+
 export async function fetchPinned(username: string) {
   if (!process.env.GITHUB_TOKEN) return [] as Repo[]; // GraphQL requires auth
+
   const query = `
     query($login:String!) {
       user(login:$login){
@@ -117,10 +147,13 @@ export async function fetchPinned(username: string) {
   });
 
   if (!res.ok) return [] as Repo[];
-  const json = await res.json();
-  const nodes = json?.data?.user?.pinnedItems?.nodes ?? [];
-  return nodes.map((n: any) => ({
-    id: Number(n.id?.replace(/[^0-9]/g, "").slice(-9)) || Math.random(),
+
+  const json = (await res.json()) as GqlPinnedResp;
+  const nodes = json.data?.user?.pinnedItems?.nodes ?? [];
+
+  return nodes.map((n) => ({
+    // GraphQL id isn't numeric; synthesize a stable-ish number or keep Math.random()
+    id: Number(n.id.replace(/[^0-9]/g, "").slice(-9)) || Math.floor(Math.random() * 1e9),
     name: n.name,
     full_name: n.nameWithOwner,
     html_url: n.url,
@@ -128,10 +161,10 @@ export async function fetchPinned(username: string) {
     stargazers_count: n.stargazerCount,
     forks_count: n.forkCount,
     language: n.primaryLanguage?.name ?? null,
-    topics: n.repositoryTopics?.nodes?.map((x: any) => x.topic.name) ?? [],
+    topics: (n.repositoryTopics?.nodes ?? []).map((x) => x.topic.name),
     archived: n.isArchived,
     disabled: n.isDisabled,
     pushed_at: n.updatedAt,
-    private: undefined, // GraphQL node didn't include this directly
+    private: undefined, // not returned by this GraphQL selection
   }));
 }

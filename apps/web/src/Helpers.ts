@@ -18,7 +18,7 @@ export const strokeColor = (m: number) => {
 
 export function smoothQPath(points: Array<{ x: number; y: number }>) {
   if (points.length < 2) return "";
-  const [p0, ...rest] = points;
+  const [p0, _rest] = points;
   let d = `M ${p0.x},${p0.y}`;
   for (let i = 1; i < points.length; i++) {
     const pPrev = points[i - 1];
