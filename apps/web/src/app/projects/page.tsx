@@ -1,14 +1,18 @@
-import { projects } from "@/data/projects";
-import ProjectCard from "@/components/ProjectCard";
+import { Suspense } from "react";
+import ProjectsView from "./projects-view";
+import PinnedRow from "./pinned";
 
-export default function Projects() {
+export const dynamic = "force-dynamic";
+
+export default function ProjectsPage() {
   return (
-    <section className="space-y-6">
-      <h1 className="text-2xl md:text-3xl font-semibold">Projects</h1>
-      <p className="text-white/70">Snapshot of each repo: status, tags, and next update.</p>
-      <div className="grid md:grid-cols-2 gap-6">
-        {projects.map(p => <ProjectCard key={p.slug} p={p} />)}
-      </div>
-    </section>
+    <main className="mx-auto max-w-6xl px-4 py-10">
+      <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>
+      <p className="mt-2 text-zinc-400">Live from GitHub · sorted by recent activity</p>
+      <Suspense fallback={<div className="mt-8 animate-pulse text-zinc-400">Loading…</div>}>
+        {/* <PinnedRow /> */}
+        <ProjectsView />
+      </Suspense>
+    </main>
   );
 }

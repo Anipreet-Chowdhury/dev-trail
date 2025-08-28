@@ -6,7 +6,7 @@ export default function AboutHero() {
                     <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">Hi, I’m Anipreet 👋</h1>
                     <p className="mt-3 text-zinc-300 leading-relaxed max-w-2xl">
                         I’m a Toronto‑based engineer blending  
-                        <span className="font-medium text-zinc-100">data engineering</span>,
+                        <span className="font-medium text-zinc-100"> data engineering</span>,
                         <span className="font-medium text-zinc-100"> machine learning and </span> 
                         <span className="font-medium text-zinc-100">full‑stack development</span>.
                         I build pragmatic systems: clean UIs, reliable APIs, and pipelines that move the needle.
