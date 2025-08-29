@@ -7,29 +7,32 @@ import { classNames } from "@/Helpers";
 import { SEED } from "@/data/showcasedata";
 import { fetchRepoClient } from "@/Helpers";
 
+type SortKey = "status" | "recent";
+type RepoInfoMap = Record<string, Repo | null>;
+
 export default function ShowcasePage() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"status" | "recent">("status");
+  const [sortBy, setSortBy] = useState<SortKey>("status");
   const [openVideo, setOpenVideo] = useState<ShowcaseProject | null>(null);
   const [openImage, setOpenImage] = useState<{ url: string; title: string } | null>(null);
-  const [repoInfo, setRepoInfo] = useState<Record<string, any>>({});
+  const [repoInfo, setRepoInfo] = useState<RepoInfoMap>({});
 
   // pull live GitHub stats once on mount (private repos supported via API route)
   useEffect(() => {
     (async () => {
       const repos = SEED.filter((p:ShowcaseProject) => p.repo).map((p: ShowcaseProject) => p.repo!);
-      const entries = await Promise.all(
-        repos.map(async (r: string) => {
-          try {
-            const data = await fetchRepoClient(r); // calls /api/github/repo/:owner/:name
-            return [r, data] as const;
-          } catch {
-            return [r, null] as const;
-          }
-        })
-      );
-      setRepoInfo(Object.fromEntries(entries));
+      const entries: Array<[string, Repo | null]> = await Promise.all(
+      repos.map(async (r: string): Promise<[string, Repo | null]> => {
+        try {
+          const data = await fetchRepoClient(r); // Promise<Repo | null>
+          return [r, (data as Repo | null)];
+        } catch {
+          return [r, null];
+        }
+      })
+    );
+    setRepoInfo(Object.fromEntries(entries) as RepoInfoMap);
     })();
   }, []);
 
@@ -39,30 +42,21 @@ export default function ShowcasePage() {
   }, []); 
 
   const filtered = useMemo(() => {
-    interface FilteredProject extends ShowcaseProject {}
-
-    interface RepoInfo {
-      stargazers_count?: number;
-      forks_count?: number;
-      pushed_at?: string;
-      [key: string]: any;
-    }
-
     return SEED.filter(
-      (p: FilteredProject) =>
+        (p: ShowcaseProject) =>
         (!activeTag || p.tags.includes(activeTag)) &&
         (!search ||
           p.title.toLowerCase().includes(search.toLowerCase()) ||
           p.summary.toLowerCase().includes(search.toLowerCase()))
-    ).sort((a: FilteredProject, b: FilteredProject) => {
+    )
+    .sort((a: ShowcaseProject, b: ShowcaseProject) => {
       if (sortBy === "status") {
         return statusRank[b.status] - statusRank[a.status];
       }
-      // recent by GitHub pushed_at when available
-      const aRepo: RepoInfo | null = a.repo ? repoInfo[a.repo] : null;
-      const bRepo: RepoInfo | null = b.repo ? repoInfo[b.repo] : null;
-      const aTime: number = aRepo?.pushed_at ? new Date(aRepo.pushed_at).getTime() : 0;
-      const bTime: number = bRepo?.pushed_at ? new Date(bRepo.pushed_at).getTime() : 0;
+      const aRepo = a.repo ? repoInfo[a.repo] : null; // Repo | null
+      const bRepo = b.repo ? repoInfo[b.repo] : null; // Repo | null
+      const aTime = aRepo?.pushed_at ? new Date(aRepo.pushed_at).getTime() : 0;
+      const bTime = bRepo?.pushed_at ? new Date(bRepo.pushed_at).getTime() : 0;
       return bTime - aTime;
     });
   }, [activeTag, search, sortBy, repoInfo]);
@@ -92,7 +86,7 @@ export default function ShowcasePage() {
           </div>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as SortKey)}
             className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm"
           >
             <option value="status">Sort: Status</option>
@@ -133,127 +127,127 @@ export default function ShowcasePage() {
       {/* Cards */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence>
-          {filtered.map((p:ShowcaseProject) => (
-            <motion.article
-              key={p.slug}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 12 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              className="group relative overflow-hidden rounded-2xl border border-zinc-800/60 bg-zinc-900"
-            >
-              {/* Top media */}
-              <div className="relative aspect-video w-full overflow-hidden">
-                {p.screenshots?.[0] ? (
-                  <img
-                    src={p.screenshots[0]}
-                    alt={`${p.title} screenshot`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    onClick={() => setOpenImage({ url: p.screenshots![0], title: p.title })}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-zinc-800/50 text-zinc-500">
-                    Media coming soon
-                  </div>
-                )}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-900/60 to-transparent" />
-                <div className="absolute left-3 top-3">
-                  <span
-                    className={classNames(
-                      "rounded-full px-2.5 py-1 text-xs font-medium",
-                      statusStyle(p.status)
-                    )}
-                  >
-                    {p.status}
-                  </span>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="flex flex-col gap-3 p-4">
-                <header>
-                  <h3 className="text-lg font-semibold tracking-tight">{p.title}</h3>
-                  <p className="mt-1 line-clamp-3 text-sm text-zinc-400">{p.summary}</p>
-                </header>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2">
-                  {p.tags.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setActiveTag(t === activeTag ? null : t)}
-                      className="rounded-full border border-zinc-700 px-2.5 py-0.5 text-xs text-zinc-300 hover:border-zinc-500"
+          {filtered.map((p:ShowcaseProject) => {
+            const info: Repo | null = p.repo ? repoInfo[p.repo] : null;
+            return (
+              <motion.article
+                key={p.slug}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="group relative overflow-hidden rounded-2xl border border-zinc-800/60 bg-zinc-900"
+              >
+                {/* Top media */}
+                <div className="relative aspect-video w-full overflow-hidden">
+                  {p.screenshots?.[0] ? (
+                    <img
+                      src={p.screenshots[0]}
+                      alt={`${p.title} screenshot`}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onClick={() => setOpenImage({ url: p.screenshots![0], title: p.title })}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-zinc-800/50 text-zinc-500">
+                      Media coming soon
+                    </div>
+                  )}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-900/60 to-transparent" />
+                  <div className="absolute left-3 top-3">
+                    <span
+                      className={classNames(
+                        "rounded-full px-2.5 py-1 text-xs font-medium",
+                        statusStyle(p.status)
+                      )}
                     >
-                      {t}
-                    </button>
-                  ))}
+                      {p.status}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Repo stats / actions */}
-                <div className="mt-1 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 text-xs text-zinc-400">
-                    {p.repo && (
-                      <>
-                        <span title="Stars" className="inline-flex items-center gap-1">
-                          ⭐ {repoInfo[p.repo]?.stargazers_count ?? "—"}
-                        </span>
-                        <span title="Forks" className="inline-flex items-center gap-1">
-                          🍴 {repoInfo[p.repo]?.forks_count ?? "—"}
-                        </span>
-                        <span title="Last push" className="inline-flex items-center gap-1">
-                          ⏱️{" "}
-                          {repoInfo[p.repo]?.pushed_at
-                            ? new Date(repoInfo[p.repo].pushed_at).toLocaleDateString()
-                            : "—"}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {p.loomUrl && (
+                {/* Content */}
+                <div className="flex flex-col gap-3 p-4">
+                  <header>
+                    <h3 className="text-lg font-semibold tracking-tight">{p.title}</h3>
+                    <p className="mt-1 line-clamp-3 text-sm text-zinc-400">{p.summary}</p>
+                  </header>
+
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-2">
+                    {p.tags.map((t) => (
                       <button
-                        onClick={() => setOpenVideo(p)}
-                        className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300 hover:border-emerald-400/60"
+                        key={t}
+                        onClick={() => setActiveTag(t === activeTag ? null : t)}
+                        className="rounded-full border border-zinc-700 px-2.5 py-0.5 text-xs text-zinc-300 hover:border-zinc-500"
                       >
-                        ▶ Watch Loom
+                        {t}
                       </button>
-                    )}
-                    <a
-                      href={`/showcase/${p.slug}`}
-                      className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-200 hover:border-zinc-500"
-                    >
-                      Details
-                    </a>
-                    {p.repo && (
-                      <a
-                        href={`https://github.com/${p.repo}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-200 hover:border-zinc-500"
-                      >
-                        GitHub
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                {/* Secondary media row */}
-                {p.screenshots && p.screenshots.length > 1 && (
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {p.screenshots.slice(1, 4).map((src, i) => (
-                      <img
-                        key={i}
-                        src={src}
-                        alt={`${p.title} screenshot ${i + 2}`}
-                        className="aspect-video w-full cursor-pointer rounded-lg border border-zinc-800 object-cover hover:opacity-90"
-                        onClick={() => setOpenImage({ url: src, title: p.title })}
-                      />
                     ))}
                   </div>
-                )}
-              </div>
-            </motion.article>
-          ))}
+
+                  {/* Repo stats / actions */}
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 text-xs text-zinc-400">
+                      {p.repo && (
+                        <>
+                          <span title="Stars" className="inline-flex items-center gap-1">
+                            ⭐ {info?.stargazers_count ?? "—"}
+                          </span>
+                          <span title="Forks" className="inline-flex items-center gap-1">
+                            🍴 {info?.forks_count ?? "—"}
+                          </span>
+                          <span title="Last push" className="inline-flex items-center gap-1">
+                            ⏱️{info?.pushed_at ? new Date(info.pushed_at).toLocaleDateString() : "—"}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {p.loomUrl && (
+                        <button
+                          onClick={() => setOpenVideo(p)}
+                          className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300 hover:border-emerald-400/60"
+                        >
+                          ▶ Watch Loom
+                        </button>
+                      )}
+                      <a
+                        href={`/showcase/${p.slug}`}
+                        className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-200 hover:border-zinc-500"
+                      >
+                        Details
+                      </a>
+                      {p.repo && (
+                        <a
+                          href={`https://github.com/${p.repo}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-200 hover:border-zinc-500"
+                        >
+                          GitHub
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Secondary media row */}
+                  {p.screenshots && p.screenshots.length > 1 && (
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {p.screenshots.slice(1, 4).map((src, i) => (
+                        <img
+                          key={i}
+                          src={src}
+                          alt={`${p.title} screenshot ${i + 2}`}
+                          className="aspect-video w-full cursor-pointer rounded-lg border border-zinc-800 object-cover hover:opacity-90"
+                          onClick={() => setOpenImage({ url: src, title: p.title })}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.article>
+            );
+          })}
         </AnimatePresence>
       </div>
 
