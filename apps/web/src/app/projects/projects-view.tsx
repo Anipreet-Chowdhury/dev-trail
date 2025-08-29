@@ -1,22 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { relTime } from "@/utils/time"
+import { Repo } from "@/types";
 
-export type Repo = {
-  id: number;
-  name: string;
-  full_name: string;
-  html_url: string;
-  description: string | null;
-  stargazers_count: number;
-  forks_count: number;
-  language: string | null;
-  topics?: string[];
-  archived: boolean;
-  disabled: boolean;
-  pushed_at: string;
-  private?: boolean; // 👈 NEW
-};
 
 type RepoCardProps = {
   repo: Repo;

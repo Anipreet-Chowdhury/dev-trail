@@ -29,6 +29,47 @@ export type Repo = {
   owner?: { login: string };
 };
 
+export async function fetchRepo(fullName: string) {
+  // Must be "owner/name"
+  if (!fullName || !fullName.includes("/")) {
+    throw new Error(`Invalid repo: "${fullName}". Expected "owner/name".`);
+  }
+
+  const res = await fetch(`${GITHUB_API}/repos/${fullName}`, {
+    method: "GET",
+    headers: ghHeaders(), // uses GITHUB_TOKEN if present (private repo access)
+    cache: "no-store",
+    next: { revalidate: 0, tags: ["github-repo", fullName] },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`GitHub repo fetch failed: ${res.status} ${text}`);
+  }
+
+  const repo = (await res.json()) as Repo;
+
+  // Fetch topics (same pattern as fetchUserRepos)
+  try {
+    const tRes = await fetch(`${GITHUB_API}/repos/${repo.full_name}/topics`, {
+      headers: {
+        ...ghHeaders(),
+        Accept: "application/vnd.github+json",
+      },
+      cache: "no-store",
+      next: { revalidate: 0 },
+    });
+    if (tRes.ok) {
+      const t: { names?: string[] } = await tRes.json();
+      return { ...repo, topics: t.names ?? [] };
+    }
+  } catch {
+    // ignore topic failures and return base repo
+  }
+
+  return repo;
+}
+
 export async function fetchUserRepos(username: string) {
   const authed = Boolean(process.env.GITHUB_TOKEN);
 
@@ -167,4 +208,40 @@ export async function fetchPinned(username: string) {
     pushed_at: n.updatedAt,
     private: undefined, // not returned by this GraphQL selection
   }));
+}
+
+
+export async function fetchRepoReadme(fullName: string): Promise<string | null> {
+  if (!fullName || !fullName.includes("/")) {
+    throw new Error(`Invalid repo "${fullName}" (expected "owner/name")`);
+  }
+
+  // Ask for the raw markdown; GitHub will send plain text
+  const res = await fetch(`${GITHUB_API}/repos/${fullName}/readme`, {
+    method: "GET",
+    headers: {
+      ...ghHeaders(),
+      Accept: "application/vnd.github.raw", // raw README.md
+    },
+    cache: "no-store",
+    next: { revalidate: 0 },
+  });
+
+  if (res.status === 404) return null;     // no README yet or no access
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`GitHub README fetch failed: ${res.status} ${text}`);
+  }
+
+  // If Accept was honored, this is raw markdown text
+  const contentType = res.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    // Fallback: sometimes you still get JSON with base64 "content"
+    const j = await res.json();
+    const b64 = j?.content ?? "";
+    if (!b64) return null;
+    return Buffer.from(b64, "base64").toString("utf-8");
+  }
+
+  return await res.text();
 }

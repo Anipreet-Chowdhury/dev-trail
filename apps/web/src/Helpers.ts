@@ -1,3 +1,5 @@
+import { ShowcaseProject } from "./types";
+
 export const masteryColor = (m: number) => {
     // return Tailwind color tokens
     if (m >= 85) return "bg-emerald-500";
@@ -63,4 +65,40 @@ export function catmullRomPath(
     d += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`;
   }
   return d;
+}
+
+
+export const statusRank: Record<ShowcaseProject["status"], number> = {
+  planning: 0,
+  building: 1,
+  alpha: 2,
+  beta: 3,
+  launched: 4,
+};
+
+
+export function classNames(...xs: (string | false | null | undefined)[]) {
+  return xs.filter(Boolean).join(" ");
+}
+
+
+export function statusStyle(s: ShowcaseProject["status"]) {
+  switch (s) {
+    case "planning":
+      return "bg-zinc-800 text-zinc-300 border border-zinc-700";
+    case "building":
+      return "bg-amber-500/10 text-amber-300 border border-amber-400/40";
+    case "alpha":
+      return "bg-blue-500/10 text-blue-300 border border-blue-400/40";
+    case "beta":
+      return "bg-purple-500/10 text-purple-300 border border-purple-400/40";
+    case "launched":
+      return "bg-green-500/10 text-green-300 border border-green-400/40";
+  }
+}
+
+export async function fetchRepoClient(repo: string) {
+  const res = await fetch(`/api/github/repo/${repo}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("GitHub fetch failed");
+  return res.json();
 }
